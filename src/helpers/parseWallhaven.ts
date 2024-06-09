@@ -175,7 +175,6 @@ export const scrapeWallhaven = async ({
 	if (previousScrapedDetails) {
 		currentPage = previousScrapedDetails?.currentPage ? Number(previousScrapedDetails.currentPage) + 1 : page
 	}
-	console.log("previousScrapedDetails", previousScrapedDetails, page, currentPage)
 
 	// return
 	let nextScrapedPageMarker = currentPage
@@ -196,7 +195,7 @@ export const scrapeWallhaven = async ({
 				continue
 			}
 			const wallpapers = parseWallhavenThumbnails(html) || [];
-			const wallsWithDetails = await _handleScrapeWallpaperDetails(wallpapers.slice(0, 2))
+			const wallsWithDetails = await _handleScrapeWallpaperDetails(wallpapers)
 			
 			const savedResults = await saveWallhavenWallpapersToDB(wallsWithDetails)
 			totalWallpapers += wallsWithDetails.length;

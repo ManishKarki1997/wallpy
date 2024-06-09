@@ -6,3 +6,5 @@ export const SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST = 100 // large becaus
 export const EVERY_6_HOURS = `0 */6 * * *`
 export const EVERY_4_HOURS = `0 */4 * * *`
 export const EVERY_5_SECONDS = `*/5 * * * * *`
+export const EVERY_60_SECONDS = `*/60 * * * * *`
+export const EVERY_2_MINUTES = `*/2 * * * *`
