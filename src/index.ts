@@ -64,7 +64,7 @@ app.get('/scrape', async ({ query }) => {
 
 runWallhavenCRON()
 
-app.listen(3000, () => {
+app.listen(9001, () => {
   console.log(
     `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
   );
