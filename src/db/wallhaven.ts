@@ -55,6 +55,10 @@ export class Wallhaven {
         url: data.src,
         resolution: data.resolution,
         stars: data.stars ? (data?.stars) : undefined,
+        metadata: data?.metadata,
+        colors: data?.colors,
+        tags: data?.tags,
+        uploader: data?.uploader,        
       };
     });
 

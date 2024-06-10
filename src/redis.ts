@@ -4,5 +4,5 @@ import Redis from 'ioredis';
 const redisHost = process.env.REDIS_HOST || 'localhost';
 export const redis = new Redis({
   host: redisHost,
-  port: 6379 // Default Redis port
+  port: 6379 
 });
