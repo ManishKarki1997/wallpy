@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ScrapedMetaDataSource {
+  Wallhaven  
+}
+
+model Color {
+  id        Int      @id @default(autoincrement())
+  color     String   @unique()
+  url       String?
+  wallpaper    Wallpaper     @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
+  wallpaperId  Int
+}
+
+model Tag{
+  id        Int      @id @default(autoincrement())
+  name      String   @unique()
+  url        String?
+  wallpaper    Wallpaper     @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
+  wallpaperId  Int
+}
+
+model Uploader{
+  id        Int      @id @default(autoincrement())
+  name      String
+  avatar    String?
+  url    String?
+  wallpaper    Wallpaper     @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
+  wallpaperId  Int @unique()
+}
+
+
+model Wallhaven{
+  id        Int      @id @default(autoincrement())
+  imageId   String   @unique()
+  thumbSrc  String
+  src       String
+  resolution String
+  stars     Int?
+  purity    String?
+  category   String?  
+  wallpaper    Wallpaper     @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
+  wallpaperId  Int @unique()
+}
+
+model Wallpaper {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  uuid      String   @db.VarChar(20) @unique()
+  name      String   @db.VarChar(255) 
+  published Boolean  @default(false)
+  wallSource String  // WALLHAVEN | ...
+  url       String
+  size      String?
+  imageType  String?
+  views       String?    
+  wallpaper   Wallhaven?  
+  uploader    Uploader?
+  tags        Tag[]
+  colors      Color[]
+}
+
+model ScrapedMetaData{
+  id        Int      @id @default(autoincrement())
+  source    ScrapedMetaDataSource   @default(Wallhaven)
+  name      String   @db.VarChar(255)
+  page      Int  
+
+  @@unique([source,name])
+}

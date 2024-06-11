@@ -4,6 +4,7 @@ import { getHTML } from './getHtml';
 import { sleep } from '../utils';
 import { WALLHAVEN_PREFIX, Wallhaven } from '../db/wallhaven';
 import { SCRAPE_DETAIL_SLEEEP, SCRAPE_URL_SLEEEP } from '../constants';
+import { getScrapedMetaData, saveWallpapers, setScrapedMetaData } from '../services/SUWallpaper.service';
 
 
 
@@ -170,10 +171,12 @@ export const scrapeWallhaven = async ({
 
 	let currentPage = page;
 
-	const previousScrapedDetails = await wallpaperModel.getScrapedDetails({ pageType })
+	// const previousScrapedDetails = await wallpaperModel.getScrapedDetails({ pageType })
+	const previousScrapedDetails = await getScrapedMetaData({ pageType, source:"Wallhaven" })
+
 
 	if (previousScrapedDetails) {
-		currentPage = previousScrapedDetails?.currentPage ? Number(previousScrapedDetails.currentPage) + 1 : page
+		currentPage = previousScrapedDetails?.page ? Number(previousScrapedDetails.page) + 1 : page
 	}
 
 	// return
@@ -191,27 +194,29 @@ export const scrapeWallhaven = async ({
 			if (!html) {
 				nextScrapedPageMarker += 1;
 				failedScrapes += 1;
-				await saveCurrentScrapedState({currentPage: nextScrapedPageMarker, pageType})
+				await setScrapedMetaData({currentPage: nextScrapedPageMarker, pageType,source:"Wallhaven"})
 				continue
 			}
 			const wallpapers = parseWallhavenThumbnails(html) || [];
-			const wallsWithDetails = await _handleScrapeWallpaperDetails(wallpapers)
+			const wallsWithDetails = await _handleScrapeWallpaperDetails(wallpapers.slice(0,2))
 			
-			const savedResults = await saveWallhavenWallpapersToDB(wallsWithDetails)
+			// await saveWallpapers(wallsWithDetails.slice(0,2))
+			await saveWallpapers(wallsWithDetails)
 			totalWallpapers += wallsWithDetails.length;
 			successfullScrapes += 1
 			allWallpapers = [...allWallpapers, ...wallsWithDetails]
 			
-			if (savedResults.imageExists) {
-				console.info(`Wallpaper already exists. Skipping page ${i}. Sleeping for ${SCRAPE_URL_SLEEEP}ms`)
-				nextScrapedPageMarker += 1;
-				await saveCurrentScrapedState({currentPage: nextScrapedPageMarker, pageType})
-				continue
-			}
+			// if (savedResults.imageExists) {
+			// 	console.info(`Wallpaper already exists. Skipping page ${i}. Sleeping for ${SCRAPE_URL_SLEEEP}ms`)
+			// 	nextScrapedPageMarker += 1;
+			// 	await saveCurrentScrapedState({currentPage: nextScrapedPageMarker, pageType})
+			// 	continue
+			// }
 
 			console.log(`Finished scraping ${pageType} for page ${i}. Sleeping for ${SCRAPE_URL_SLEEEP}ms`)
 			nextScrapedPageMarker += 1
-			await saveCurrentScrapedState({currentPage: nextScrapedPageMarker, pageType})
+			await setScrapedMetaData({currentPage: nextScrapedPageMarker, pageType, source:"Wallhaven"})
+			// await saveCurrentScrapedState({currentPage: nextScrapedPageMarker, pageType})
 			await sleep(SCRAPE_URL_SLEEEP)
 		} catch (error) {
 			nextScrapedPageMarker += 1

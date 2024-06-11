@@ -2,37 +2,14 @@ import { Elysia } from "elysia";
 import { scrapeWallhaven } from "./helpers/parseWallhaven";
 import { WALLHAVEN_PREFIX, Wallhaven } from "./db/wallhaven";
 import { runWallhavenCRON } from "./cron/wallhaven-cron";
-import { SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST } from "./constants";
+import { DEFAULT_PAGINATION_SIZE, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST } from "./constants";
 import { scrapeWallhavenQueue } from "./scheduler/wallhavenScheduler";
-
-const app = new Elysia()
-
-app.get("/", async ({ query }) => {
+import { saveWallpapers } from "./services/SUWallpaper.service";
+import { listWallpapers } from "./services/UserWallpaper.service";
 
 
-  const {
-    page = 1,
-    limit,
-    sortBy = 'imageId',
-    sortOrder = 'asc',
-    searchTerm = ''
-  } = query;
-
-
-  const wallpaperModel = new Wallhaven(WALLHAVEN_PREFIX);
-
-  const allWallpapers = await wallpaperModel.getAll({
-    page: +page,
-    limit: limit ? +limit : undefined,
-    sortBy,
-    sortOrder: sortOrder as "asc" | "desc",
-    searchTerm
-  })
-  return allWallpapers
-
-});
-
-app.get('/scrape', async ({ query }) => {
+const adminAPI = new Elysia({prefix:"su"})
+.get("/scrape", async({ query }) => {
   try {
 
     let {
@@ -74,8 +51,38 @@ app.get('/scrape', async ({ query }) => {
   } catch (error) {
     console.error(error)
     return new Response("Something went wrong while scraping wallpapers")
-  }
+  } 
 })
+
+const usersAPI = new Elysia()
+.get("/", async ({ query }) => {
+  const {
+    page = 1,
+    limit,
+    sortBy = 'imageId',
+    sortOrder = 'asc',
+    searchTerm = ''
+  } = query;
+
+
+  // const wallpaperModel = new Wallhaven(WALLHAVEN_PREFIX);
+
+  const data = await listWallpapers({
+    limit: limit ? +limit : DEFAULT_PAGINATION_SIZE,
+    page: +page,
+    search: searchTerm,
+    sortBy,
+    sortOrder
+  })
+
+  return data
+})
+
+const app = new Elysia()
+.use(adminAPI)
+.use(usersAPI)
+
+
 
 runWallhavenCRON()
 

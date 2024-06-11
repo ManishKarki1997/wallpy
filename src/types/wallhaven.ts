@@ -57,5 +57,6 @@ export interface IScrapeWallhaven {
 
 export interface IScrapedMetadata{
 	currentPage:number;
-	pageType:'latest' | 'toplist'
+	pageType:'latest' | 'toplist';
+	source: "Wallhaven"
 }

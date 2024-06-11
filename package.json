@@ -6,17 +6,20 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
+    "@prisma/client": "^5.15.0",
     "axios": "^1.7.2",
     "bullmq": "^5.7.15",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.4.5",
     "elysia": "latest",
     "ioredis": "^5.4.1",
+    "nanoid": "3.0.0",
     "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "prisma": "^5.15.0"
   },
   "module": "src/index.js"
 }
