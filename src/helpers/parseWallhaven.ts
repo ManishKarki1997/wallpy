@@ -198,7 +198,7 @@ export const scrapeWallhaven = async ({
 				continue
 			}
 			const wallpapers = parseWallhavenThumbnails(html) || [];
-			const wallsWithDetails = await _handleScrapeWallpaperDetails(wallpapers.slice(0,2))
+			const wallsWithDetails = await _handleScrapeWallpaperDetails(wallpapers)
 			
 			// await saveWallpapers(wallsWithDetails.slice(0,2))
 			await saveWallpapers(wallsWithDetails)
