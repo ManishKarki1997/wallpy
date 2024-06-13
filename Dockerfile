@@ -13,6 +13,7 @@ RUN bun install --production
 COPY src src
 COPY tsconfig.json .
 
+RUN bun prisma generate
 
 ENV NODE_ENV production
 # CMD ["bun", "src/index.ts"]
