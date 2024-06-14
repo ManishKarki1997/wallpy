@@ -14,6 +14,7 @@ COPY src src
 COPY tsconfig.json .
 
 RUN bun prisma generate
+RUN bun prisma migrate deploy
 
 ENV NODE_ENV production
 # CMD ["bun", "src/index.ts"]
