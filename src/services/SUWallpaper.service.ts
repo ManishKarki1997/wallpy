@@ -5,7 +5,6 @@ import { IScrapedMetadata, IWallhaven } from "../types/wallhaven"
 import { IListWallpapers } from "../types/wallpaper";
 
 export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
-  // console.log("wallpapers", wallpapers.slice(0,1))
   try {
 
     const wallpapersObj = wallpapers.reduce((acc: any, wallpaper: IWallhaven) => {
@@ -21,6 +20,7 @@ export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
     }, {});
 
     const newWallpapers = await prisma.wallpaper.createManyAndReturn({
+      skipDuplicates:true,
       data: wallpapers.map(wallpaper => ({
         uuid: generateWallpaperId(),
         name: wallpaper.imageId,
@@ -33,6 +33,7 @@ export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
     })
 
     const wallhavenWalls = await prisma.wallhaven.createManyAndReturn({
+      skipDuplicates:true,
       data: newWallpapers.map(newWall => {
         const originalWallpaperDetail = wallpapersObj[newWall.name] as IWallhaven
         return ({
@@ -48,27 +49,11 @@ export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
       })
     })
 
-     await prisma.color.createMany({
-      data: wallhavenWalls
-        .map(wallpaper => {
-          const originalWallpaperDetail = wallpapersObj[wallpaper.imageId] as IWallhaven
-          const colors = originalWallpaperDetail.colors || []
-          // @ts-ignore
-          const finalColors = colors.map(color => ({
-            color: color.color,
-            url: color.url,
-            wallpaperId: wallpaper.wallpaperId
-          }))
-          return finalColors
-        }).flat()
-        .filter(c => c.color)
-    })
-
      await prisma.tag.createMany({
+      skipDuplicates:true,
       data: wallhavenWalls
         .map(wallpaper => {
           const originalWallpaperDetail = wallpapersObj[wallpaper.imageId] as IWallhaven          
-
           const tags = originalWallpaperDetail.tags || []
           // @ts-ignore
           const finalColors = tags.map(tag => ({
@@ -82,6 +67,7 @@ export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
     })
 
      await prisma.uploader.createMany({
+      skipDuplicates:true,
       data: wallhavenWalls.map(wallhavenWall => {
         const originalWallpaperDetail = wallpapersObj[wallhavenWall.imageId] as IWallhaven
 
@@ -93,6 +79,25 @@ export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
         })
       }).filter(wall => wall.name)
     })
+
+    await prisma.color.createMany({
+      data: wallhavenWalls
+        .map(wallpaper => {
+          const originalWallpaperDetail = wallpapersObj[wallpaper.imageId] as IWallhaven
+          const colors = originalWallpaperDetail.colors || []
+          // @ts-ignore
+          const finalColors = colors.map(color => ({
+            color: color.color,
+            url: color.url,
+            wallpaperId: wallpaper.wallpaperId
+          }))
+          return finalColors
+        }).flat()
+        .filter(c => c.color),
+        skipDuplicates:true
+    })
+
+    
 
   } catch (error) {
     // if(error?.message?.includes("Unique constraint")) return

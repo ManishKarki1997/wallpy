@@ -176,20 +176,12 @@ export const scrapeWallhaven = async ({
 
 	let currentPage = totalAvailablePage;
 
-	// TODO for the scraped metadata, i might need to update the logic
-	// first of all, before even running any scraping logic, i need to visit the .https://wallhaven.cc/latest?page=1 page and see what the total pages is
-	// i'm assuming the new wallpapers are rendered on page 1. 
-	// now, i need to reverse this previousScrapedDetails logic, instead of increasing from 1 to whatever currentPage is saved in the database
-	// i need to get the currentPage from DB and run scraping logic from currentPage to currentPage - SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST until it reaches 1
 
-	// const previousScrapedDetails = await wallpaperModel.getScrapedDetails({ pageType })
-	// if(pageType !== 'toplist'){
-// for toplist wallpapers, we need the freshest wallpapers 
 		const previousScrapedDetails = await getScrapedMetaData({ pageType, source:"Wallhaven" })	
 		if (previousScrapedDetails) {
 			currentPage = previousScrapedDetails?.page ? Number(previousScrapedDetails.page) + 1 : totalAvailablePage
 		}
-	// }
+
 	
 	
 	let howManyToScrapePerSession =pageType=== 'latest'? SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST :SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST

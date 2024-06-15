@@ -11,17 +11,24 @@ export const  listWallpapers = async({
   page = 1,
   search = ""
 }: IListWallpapers) =>  {
-
   const totalWalls = await prisma.wallpaper.count({
     where: {      
       ...(search && search.trim() && {
         name: {
           contains: search || '',
+          mode:"insensitive",
+        },
+        wallpaper:{
+          category:{
+            contains: search || '',
+            mode:"insensitive",
+          }
         },
         tags:{
           some:{
             name:{
-              contains: search || ''
+              contains: search || '',
+              mode:"insensitive",
             }
           }
         }
@@ -30,20 +37,59 @@ export const  listWallpapers = async({
   });
 
   let wallpapers = await prisma.wallpaper.findMany({
-    where: {      
+    where:{
       ...(search && search.trim() && {
-        name: {
-          contains: search || '',
-        },
-        tags:{
-          some:{
+
+        OR:[
+          {
             name:{
-              contains: search || ''
+              contains:search,
+              mode:"insensitive"
+            }
+          },
+          {
+            tags:{
+              some:{
+                name:{
+                  contains:search,
+                  mode:"insensitive"
+                }
+              }
+            }
+          },
+          {
+            wallpaper:{
+              category:{
+                contains:search,
+                mode:"insensitive"
+              }
             }
           }
-        }
+        ]
       })
     },
+    // where: {      
+    //   ...(search && search.trim() && {
+    //     name: {
+    //       contains: search || '',
+    //       mode:"insensitive",
+    //     },
+    //     wallpaper:{
+    //       category:{
+    //         contains: search || '',
+    //         mode:"insensitive",
+    //       }
+    //     },
+    //     tags:{
+    //       some:{
+    //         name:{
+    //           mode:"insensitive",
+    //           contains: search || ''
+    //         }
+    //       }
+    //     }
+    //   })
+    // },
     select:{
       id:true,
       uuid:true,
