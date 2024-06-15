@@ -9,6 +9,7 @@ export const SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST =   process.env.SCRAP
 
 export const DEFAULT_PAGINATION_SIZE = 20
 
+export const WALLHAVEN_API_KEY = process.env.WALLHAVEN_API
 export const WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL = `https://wallhaven.cc/latest?page=2`
 export const WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL = `https://wallhaven.cc/toplist?page=2`
 

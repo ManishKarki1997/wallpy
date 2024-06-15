@@ -3,7 +3,7 @@ import { IBulkInsertResponse, IScrapeWallhaven, IScrapedMetadata, IWallhaven, IW
 import { getHTML } from './getHtml';
 import { sleep } from '../utils';
 import { WALLHAVEN_PREFIX, Wallhaven } from '../db/wallhaven';
-import { SCRAPE_DETAIL_SLEEEP, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, SCRAPE_URL_SLEEEP, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from '../constants';
+import { SCRAPE_DETAIL_SLEEEP, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, SCRAPE_URL_SLEEEP, WALLHAVEN_API_KEY, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from '../constants';
 import { getScrapedMetaData, saveWallpapers, setScrapedMetaData } from '../services/SUWallpaper.service';
 
 
@@ -36,7 +36,7 @@ export const parseWallhavenThumbnails = (html: string) => {
 
 
 export const parseImageDetails = async (url: string) => {
-	const html = await getHTML(url);
+	const html = await getHTML(`${url}?apiKey=${WALLHAVEN_API_KEY}`);
 	if (!html) return null
 
 	const tags: IWallhavenTag[] = []
@@ -211,7 +211,7 @@ export const scrapeWallhaven = async ({
 			currentPageBeingScraped+=1
 		try {
 			console.log(`Querying https://wallhaven.cc/${pageType}?page=${i} | ${currentPageBeingScraped}/${howManyToScrapePerSession}`)
-			const html = await getHTML(`https://wallhaven.cc/${pageType}?page=${i}`);
+			const html = await getHTML(`https://wallhaven.cc/${pageType}?page=${i}&apiKey=${WALLHAVEN_API_KEY}`);
 			if (!html) {
 				nextScrapedPageMarker = i;
 				failedScrapes += 1;
@@ -263,7 +263,7 @@ console.log(`Finished scraping ${pageType} wallpapers`)
 
 
 export const getWallhavenPageTotalCount = async(url: string) => {
-	const html = await getHTML(url);
+	const html = await getHTML(`${url}&apiKey=${WALLHAVEN_API_KEY}`);
 
 	if(!html) return null
 

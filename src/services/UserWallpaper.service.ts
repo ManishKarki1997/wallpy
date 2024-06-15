@@ -29,7 +29,7 @@ export const  listWallpapers = async({
     },
   });
 
-  const wallpapers = await prisma.wallpaper.findMany({
+  let wallpapers = await prisma.wallpaper.findMany({
     where: {      
       ...(search && search.trim() && {
         name: {
@@ -73,7 +73,13 @@ export const  listWallpapers = async({
     },
     skip: (+page === 0 ? 0 : +page -1) * +limit,
     take: +limit,
+    orderBy:{
+      createdAt:"desc"
+    }
   });
+
+  // for some reason,some wallpapers dont have wallpaper obj (probably someting wrong while saving to db)
+  wallpapers = wallpapers.filter(wall=> wall.wallpaper)
 
   return {
     total: totalWalls,

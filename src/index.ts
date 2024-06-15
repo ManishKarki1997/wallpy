@@ -29,7 +29,7 @@ const adminAPI = new Elysia({prefix:"su"})
     // const existingJob = await scrapeWallhavenQueue.getJob("scrapeWallhaven")
     const existingJob = await scrapeWallhavenQueue.getJobState(uniqueJobId)
 
-    if(existingJob && existingJob === "waiting"){
+    if(existingJob && (existingJob === "waiting" || existingJob === 'active')){
       return new Response("Job already in queue")
   }
 
