@@ -193,7 +193,7 @@ export const scrapeWallhaven = async ({
 	
 	
 	let howManyToScrapePerSession =pageType=== 'latest'? SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST :SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST
-	const uptoPage = Math.max(currentPage - howManyToScrapePerSession,1)
+	const uptoPage = Math.max(currentPage - howManyToScrapePerSession-1,1)
 	console.log("totalAvailablePage",totalAvailablePage, previousScrapedDetails)
 	console.log("scraping from", currentPage, "to", currentPage - howManyToScrapePerSession)
 		
@@ -204,7 +204,7 @@ export const scrapeWallhaven = async ({
 	let successfullScrapes = 0;
 	let failedScrapes = 0;
 	let allWallpapers: IWallhaven[] = []	
-	let currentPageBeingScraped = 1;
+	let currentPageBeingScraped = 0;
 
 	// for (let i = currentPage; i <= currentPage + totalPages; i++) {
 		for (let i = currentPage; i >= uptoPage && i >= 1; i--) {
