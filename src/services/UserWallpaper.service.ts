@@ -13,26 +13,38 @@ export const listWallpapers = async ({
 }: IListWallpapers) => {
   const totalWalls = await prisma.wallpaper.count({
     where: {
-      ...(search && search.trim() && {
-        name: {
-          contains: search || '',
-          mode: "insensitive",
-        },
-        wallpaper: {
-          category: {
-            contains: search || '',
-            mode: "insensitive",
-          }
-        },
-        tags: {
-          some: {
+      ...(search && search.trim() &&
+      {
+        OR: [
+          {
             name: {
               contains: search || '',
               mode: "insensitive",
+            },
+          },
+          {
+            wallpaper: {
+              category: {
+                contains: search || '',
+                mode: "insensitive",
+              }
+            },
+          },
+          {
+            tags: {
+              some: {
+                tag: {
+                  name: {
+                    contains: search,
+                    mode: "insensitive"
+                  }
+                }
+              }
             }
-          }
-        }
-      })
+          },
+        ]
+      }
+      )
     },
   });
 
@@ -50,9 +62,11 @@ export const listWallpapers = async ({
           {
             tags: {
               some: {
-                name: {
-                  contains: search,
-                  mode: "insensitive"
+                tag: {
+                  name: {
+                    contains: search,
+                    mode: "insensitive"
+                  }
                 }
               }
             }
