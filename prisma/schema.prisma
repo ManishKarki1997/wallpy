@@ -30,8 +30,7 @@ model Tag{
   id        Int      @id @default(autoincrement())
   name      String   @unique()
   url        String?
-  wallpaper    Wallpaper     @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
-  wallpaperId  Int
+  wallpapers WallpaperTag[]
 }
 
 model Uploader{
@@ -71,8 +70,8 @@ model Wallpaper {
   views       String?    
   wallpaper   Wallhaven?  
   uploader    Uploader?
-  tags        Tag[]
   colors      Color[]
+  tags WallpaperTag[]
 }
 
 model ScrapedMetaData{
@@ -82,4 +81,13 @@ model ScrapedMetaData{
   page      Int  
 
   @@unique([source,name])
+}
+
+model WallpaperTag {  
+  tagId Int 
+  tag   Tag @relation(fields: [tagId], references: [id],onDelete: Cascade)
+  wallpaper   Wallpaper @relation(fields: [wallpaperId], references: [id],onDelete: Cascade)
+  wallpaperId Int 
+  @@id([tagId, wallpaperId])
+  @@map("WallpaperTag")
 }

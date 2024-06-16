@@ -2,33 +2,33 @@ import { DEFAULT_PAGINATION_SIZE } from "../constants";
 import { prisma } from "../db/prisma"
 import { generateWallpaperId } from "../helpers/uuid";
 import { IScrapedMetadata, IWallhaven } from "../types/wallhaven"
-import { IListWallpapers } from "../types/wallpaper";
+import { IListCategories, IListWallpapers } from "../types/wallpaper";
 
 
 
-export const  listWallpapers = async({
-  limit=DEFAULT_PAGINATION_SIZE,
+export const listWallpapers = async ({
+  limit = DEFAULT_PAGINATION_SIZE,
   page = 1,
   search = ""
-}: IListWallpapers) =>  {
+}: IListWallpapers) => {
   const totalWalls = await prisma.wallpaper.count({
-    where: {      
+    where: {
       ...(search && search.trim() && {
         name: {
           contains: search || '',
-          mode:"insensitive",
+          mode: "insensitive",
         },
-        wallpaper:{
-          category:{
+        wallpaper: {
+          category: {
             contains: search || '',
-            mode:"insensitive",
+            mode: "insensitive",
           }
         },
-        tags:{
-          some:{
-            name:{
+        tags: {
+          some: {
+            name: {
               contains: search || '',
-              mode:"insensitive",
+              mode: "insensitive",
             }
           }
         }
@@ -37,64 +37,42 @@ export const  listWallpapers = async({
   });
 
   let wallpapers = await prisma.wallpaper.findMany({
-    where:{
+    where: {
       ...(search && search.trim() && {
 
-        OR:[
+        OR: [
           {
-            name:{
-              contains:search,
-              mode:"insensitive"
+            name: {
+              contains: search,
+              mode: "insensitive"
             }
           },
           {
-            tags:{
-              some:{
-                name:{
-                  contains:search,
-                  mode:"insensitive"
+            tags: {
+              some: {
+                name: {
+                  contains: search,
+                  mode: "insensitive"
                 }
               }
             }
           },
           {
-            wallpaper:{
-              category:{
-                contains:search,
-                mode:"insensitive"
+            wallpaper: {
+              category: {
+                contains: search,
+                mode: "insensitive"
               }
             }
           }
         ]
       })
     },
-    // where: {      
-    //   ...(search && search.trim() && {
-    //     name: {
-    //       contains: search || '',
-    //       mode:"insensitive",
-    //     },
-    //     wallpaper:{
-    //       category:{
-    //         contains: search || '',
-    //         mode:"insensitive",
-    //       }
-    //     },
-    //     tags:{
-    //       some:{
-    //         name:{
-    //           mode:"insensitive",
-    //           contains: search || ''
-    //         }
-    //       }
-    //     }
-    //   })
-    // },
-    select:{
-      id:true,
-      uuid:true,
-      url:true,
-      wallSource:true,
+    select: {
+      id: true,
+      uuid: true,
+      url: true,
+      wallSource: true,
       // uploader:{
       //   select:{
       //     name:true,
@@ -107,28 +85,104 @@ export const  listWallpapers = async({
       //     url:true
       //   }
       // },
-      wallpaper:{
-        select:{
-          imageId:true,
-          id:true,
-          src:true,
-          thumbSrc:true,
-          category:true
+      wallpaper: {
+        select: {
+          imageId: true,
+          id: true,
+          src: true,
+          thumbSrc: true,
+          category: true
         }
       }
     },
-    skip: (+page === 0 ? 0 : +page -1) * +limit,
+    skip: (+page === 0 ? 0 : +page - 1) * +limit,
     take: +limit,
-    orderBy:{
-      createdAt:"desc"
+    orderBy: {
+      createdAt: "desc"
     }
   });
 
   // for some reason,some wallpapers dont have wallpaper obj (probably someting wrong while saving to db)
-  wallpapers = wallpapers.filter(wall=> wall.wallpaper)
+  wallpapers = wallpapers.filter(wall => wall.wallpaper)
 
   return {
     total: totalWalls,
     wallpapers,
+  };
+}
+
+
+export const listCategories = async ({
+  limit = DEFAULT_PAGINATION_SIZE,
+  page = 1,
+  search = ""
+}: IListCategories) => {
+
+  const totalTags = await prisma.tag.count({
+    where: {
+      ...(search && search.trim() && {
+        name: {
+          contains: search,
+          mode: "insensitive"
+        }
+      })
+    }
+  })
+
+
+  const offset = (+page === 0 ? 0 : +page - 1) * +limit;
+
+  let query = `
+  SELECT t.id, t.name, COUNT(t."wallpaperId") as wallpaper_count
+  FROM "Tag" t
+  LEFT JOIN "Wallpaper" w ON t."wallpaperId" = w.id
+`;
+
+  const params = [];
+  query += ` WHERE t.name ILIKE '%' || $1 || '%' `;
+  params.push(search.trim() || "");
+
+  query += `
+  GROUP BY t.id, t.name
+  ORDER BY wallpaper_count DESC
+  LIMIT $2 OFFSET $3;
+`;
+
+  params.push(limit, offset);
+
+  const tags = await prisma.tag.findMany({
+    where: {
+      ...(search && search.trim() && {
+        name: {
+          contains: search,
+          mode: "insensitive"
+        }
+      })
+    },
+    select: {
+      id: true,
+      name: true
+    },
+    skip: (+page === 0 ? 0 : +page - 1) * +limit,
+    take: +limit
+  })
+
+  function serializeTags(tags) {
+    return tags.map(tag => ({
+      ...tag,
+      id: tag.id.toString(), // Convert BigInt to String
+      wallpaper_count: Number(tag.wallpaper_count) // Convert to Number if necessary
+    }));
+  }
+
+  const rawTags = await prisma.$queryRawUnsafe(query, ...params);
+
+  const serializedTags = serializeTags(rawTags);
+
+
+  return {
+    total: totalTags,
+    tags,
+    rawTags: serializedTags
   };
 }

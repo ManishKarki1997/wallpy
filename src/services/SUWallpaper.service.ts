@@ -5,6 +5,8 @@ import { IScrapedMetadata, IWallhaven } from "../types/wallhaven"
 import { IListWallpapers } from "../types/wallpaper";
 
 export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
+  let transaction;
+
   try {
 
     const wallpapersObj = wallpapers.reduce((acc: any, wallpaper: IWallhaven) => {
@@ -19,85 +21,108 @@ export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
       return acc;
     }, {});
 
-    const newWallpapers = await prisma.wallpaper.createManyAndReturn({
-      skipDuplicates:true,
-      data: wallpapers.map(wallpaper => ({
-        uuid: generateWallpaperId(),
-        name: wallpaper.imageId,
-        url: wallpaper.url,
-        wallSource: "WALLHAVEN",
-        size: wallpaper.metadata?.size,
-        imageType: wallpaper.metadata?.imageType,
-        views: wallpaper.metadata?.views,
-      }))
-    })
+    transaction = prisma.$transaction(async (_tx) => {
 
-    const wallhavenWalls = await prisma.wallhaven.createManyAndReturn({
-      skipDuplicates:true,
-      data: newWallpapers.map(newWall => {
-        const originalWallpaperDetail = wallpapersObj[newWall.name] as IWallhaven
-        return ({
-          purity: originalWallpaperDetail?.metadata?.purity,
-          wallpaperId: newWall.id,
-          imageId: originalWallpaperDetail.imageId,
-          thumbSrc: originalWallpaperDetail.thumbSrc,
-          src: originalWallpaperDetail.src,
-          resolution: originalWallpaperDetail.resolution || "",
-          stars: originalWallpaperDetail.stars,
-          category: originalWallpaperDetail.metadata?.category
+
+      const newWallpapers = await prisma.wallpaper.createManyAndReturn({
+        skipDuplicates: true,
+        data: wallpapers.map(wallpaper => ({
+          uuid: generateWallpaperId(),
+          name: wallpaper.imageId,
+          url: wallpaper.url,
+          wallSource: "WALLHAVEN",
+          size: wallpaper.metadata?.size,
+          imageType: wallpaper.metadata?.imageType,
+          views: wallpaper.metadata?.views,
+        }))
+      })
+
+
+      const wallhavenWalls = await prisma.wallhaven.createManyAndReturn({
+        skipDuplicates: true,
+        data: newWallpapers.map(newWall => {
+          const originalWallpaperDetail = wallpapersObj[newWall.name] as IWallhaven
+          return ({
+            purity: originalWallpaperDetail?.metadata?.purity,
+            wallpaperId: newWall.id,
+            imageId: originalWallpaperDetail.imageId,
+            thumbSrc: originalWallpaperDetail.thumbSrc,
+            src: originalWallpaperDetail.src,
+            resolution: originalWallpaperDetail.resolution || "",
+            stars: originalWallpaperDetail.stars,
+            category: originalWallpaperDetail.metadata?.category
+          })
         })
       })
+
+      const newTags = await prisma.tag.createManyAndReturn({
+        skipDuplicates: true,
+        data: wallhavenWalls
+          .map(wallpaper => {
+            const originalWallpaperDetail = wallpapersObj[wallpaper.imageId] as IWallhaven
+            const tags = originalWallpaperDetail.tags || []
+            // @ts-ignore
+            const finalTags = tags.map(tag => ({
+              name: tag.name,
+              url: tag?.url,
+
+            }))
+            return finalTags
+          }).flat()
+          .filter(c => c.name)
+      })
+
+
+      await prisma.uploader.createMany({
+        skipDuplicates: true,
+        data: wallhavenWalls.map(wallhavenWall => {
+          const originalWallpaperDetail = wallpapersObj[wallhavenWall.imageId] as IWallhaven
+
+          return ({
+            name: originalWallpaperDetail.uploader?.name || "",
+            avatar: originalWallpaperDetail.uploader?.avatar || "",
+            url: originalWallpaperDetail.uploader?.url || "",
+            wallpaperId: wallhavenWall.wallpaperId,
+          })
+        }).filter(wall => wall.name)
+      })
+
+      await prisma.color.createMany({
+        data: wallhavenWalls
+          .map(wallpaper => {
+            const originalWallpaperDetail = wallpapersObj[wallpaper.imageId] as IWallhaven
+            const colors = originalWallpaperDetail.colors || []
+            // @ts-ignore
+            const finalColors = colors.map(color => ({
+              color: color.color,
+              url: color.url,
+              wallpaperId: wallpaper.wallpaperId
+            }))
+            return finalColors
+          }).flat()
+          .filter(c => c.color),
+        skipDuplicates: true
+      })
+
+      // populate join table of tags and wallpapers
+      const wallpaperTagData: Array<{ wallpaperId: number; tagId: number; }> = [];
+      newWallpapers.forEach((wallpaper) => {
+        newTags.forEach((tag) => {
+          wallpaperTagData.push({
+            wallpaperId: wallpaper.id,
+            tagId: tag.id,
+          });
+        });
+      });
+
+      // Create associations in WallpaperTag within the transaction
+      await prisma.wallpaperTag.createMany({
+        data: wallpaperTagData,
+      });
+
     })
 
-     await prisma.tag.createMany({
-      skipDuplicates:true,
-      data: wallhavenWalls
-        .map(wallpaper => {
-          const originalWallpaperDetail = wallpapersObj[wallpaper.imageId] as IWallhaven          
-          const tags = originalWallpaperDetail.tags || []
-          // @ts-ignore
-          const finalColors = tags.map(tag => ({
-            name: tag.name,
-            url: tag?.url,
-            wallpaperId: wallpaper.wallpaperId
-          }))
-          return finalColors
-        }).flat()
-        .filter(c => c.name)
-    })
 
-     await prisma.uploader.createMany({
-      skipDuplicates:true,
-      data: wallhavenWalls.map(wallhavenWall => {
-        const originalWallpaperDetail = wallpapersObj[wallhavenWall.imageId] as IWallhaven
-
-        return ({
-          name: originalWallpaperDetail.uploader?.name || "",
-          avatar: originalWallpaperDetail.uploader?.avatar || "",
-          url: originalWallpaperDetail.uploader?.url || "",
-          wallpaperId: wallhavenWall.wallpaperId,
-        })
-      }).filter(wall => wall.name)
-    })
-
-    await prisma.color.createMany({
-      data: wallhavenWalls
-        .map(wallpaper => {
-          const originalWallpaperDetail = wallpapersObj[wallpaper.imageId] as IWallhaven
-          const colors = originalWallpaperDetail.colors || []
-          // @ts-ignore
-          const finalColors = colors.map(color => ({
-            color: color.color,
-            url: color.url,
-            wallpaperId: wallpaper.wallpaperId
-          }))
-          return finalColors
-        }).flat()
-        .filter(c => c.color),
-        skipDuplicates:true
-    })
-
-    
 
   } catch (error) {
     // if(error?.message?.includes("Unique constraint")) return
@@ -155,19 +180,19 @@ export const getScrapedMetaData = async (payload: Omit<IScrapedMetadata, "curren
 }
 
 
-export const  listWallpapers = async({
-  limit=DEFAULT_PAGINATION_SIZE,
+export const listWallpapers = async ({
+  limit = DEFAULT_PAGINATION_SIZE,
   page = 1,
   search = ""
-}: IListWallpapers) =>  {
+}: IListWallpapers) => {
   const totalWalls = await prisma.wallpaper.count({
-    where: {      
+    where: {
       name: {
         contains: search || '',
       },
-      tags:{
-        some:{
-          name:{
+      tags: {
+        some: {
+          name: {
             contains: search || ''
           }
         }
@@ -176,13 +201,13 @@ export const  listWallpapers = async({
   });
 
   const wallpapers = await prisma.wallpaper.findMany({
-    where: {      
+    where: {
       name: {
         contains: search || '',
       },
-      tags:{
-        some:{
-          name:{
+      tags: {
+        some: {
+          name: {
             contains: search || ''
           }
         }
