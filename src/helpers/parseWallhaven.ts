@@ -186,7 +186,6 @@ export const scrapeWallhaven = async ({
 
 	let howManyToScrapePerSession = pageType === 'latest' ? SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST : SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST
 	const uptoPage = Math.max(currentPage - howManyToScrapePerSession - 1, 1)
-	console.log("totalAvailablePage", totalAvailablePage, previousScrapedDetails)
 	console.log("scraping from", currentPage, "to", currentPage - howManyToScrapePerSession)
 
 	// return null

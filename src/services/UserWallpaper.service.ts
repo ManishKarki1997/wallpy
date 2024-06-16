@@ -132,23 +132,28 @@ export const listCategories = async ({
 
   const offset = (+page === 0 ? 0 : +page - 1) * +limit;
 
-  let query = `
-  SELECT t.id, t.name, COUNT(t."wallpaperId") as wallpaper_count
-  FROM "Tag" t
-  LEFT JOIN "Wallpaper" w ON t."wallpaperId" = w.id
-`;
-
-  const params = [];
-  query += ` WHERE t.name ILIKE '%' || $1 || '%' `;
-  params.push(search.trim() || "");
-
-  query += `
-  GROUP BY t.id, t.name
-  ORDER BY wallpaper_count DESC
+  const query = `
+  SELECT
+      t.id,
+      t.name,
+      COUNT(w.id) AS wallpaper_count
+  FROM
+      "Tag" t
+  LEFT JOIN
+      "WallpaperTag" wt ON t.id = wt."tagId"
+  LEFT JOIN
+      "Wallpaper" w ON wt."wallpaperId" = w.id
+  WHERE
+      t.name ILIKE '%' || $1 || '%'
+  GROUP BY
+      t.id, t.name
+  ORDER BY
+      wallpaper_count DESC
   LIMIT $2 OFFSET $3;
 `;
 
-  params.push(limit, offset);
+  const params = [search.trim() || '', limit, offset];
+
 
   const tags = await prisma.tag.findMany({
     where: {
@@ -182,7 +187,7 @@ export const listCategories = async ({
 
   return {
     total: totalTags,
-    tags,
+    // tags,
     rawTags: serializedTags
   };
 }

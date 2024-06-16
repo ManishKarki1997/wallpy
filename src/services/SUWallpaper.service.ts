@@ -117,6 +117,7 @@ export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
 
       // Create associations in WallpaperTag within the transaction
       await prisma.wallpaperTag.createMany({
+        skipDuplicates: true,
         data: wallpaperTagData,
       });
 
