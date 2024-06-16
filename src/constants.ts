@@ -6,6 +6,7 @@ export const SCRAPE_DETAIL_SLEEEP = 3000
 export const SCRAPE_URL_SLEEEP = 3000
 export const SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST =  process.env.SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST ? Number(process.env.SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST) : 5 // small value cuz the toplist won't be updated that frequently, currently only has 83 pages
 export const SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST = process.env.SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST ? Number(process.env.SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST) : 1000 // large because latest has like 19k+ pages
+export const MAX_FAILED_ATTEMPTS_BEFORE_CANCELLING_SCRAPE = 10
 
 export const DEFAULT_PAGINATION_SIZE = 20
 

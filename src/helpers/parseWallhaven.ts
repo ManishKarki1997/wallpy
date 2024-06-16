@@ -3,7 +3,7 @@ import { IBulkInsertResponse, IScrapeWallhaven, IScrapedMetadata, IWallhaven, IW
 import { getHTML } from './getHtml';
 import { sleep } from '../utils';
 import { WALLHAVEN_PREFIX, Wallhaven } from '../db/wallhaven';
-import { SCRAPE_DETAIL_SLEEEP, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, SCRAPE_URL_SLEEEP, WALLHAVEN_API_KEY, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from '../constants';
+import { MAX_FAILED_ATTEMPTS_BEFORE_CANCELLING_SCRAPE, SCRAPE_DETAIL_SLEEEP, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, SCRAPE_URL_SLEEEP, WALLHAVEN_API_KEY, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from '../constants';
 import { getScrapedMetaData, saveWallpapers, setScrapedMetaData } from '../services/SUWallpaper.service';
 
 
@@ -149,8 +149,8 @@ const _handleScrapeWallpaperDetails = async (wallpapers: IWallhaven[]): Promise<
 	return wallsWithDetails
 }
 
-const saveCurrentScrapedState = async(params:IScrapedMetadata) => {
-	console.log(`Setting scrape history `,params)
+const saveCurrentScrapedState = async (params: IScrapedMetadata) => {
+	console.log(`Setting scrape history `, params)
 	const wallpaperModel = new Wallhaven(WALLHAVEN_PREFIX);
 	await wallpaperModel.setScrapedDetails(params)
 }
@@ -166,48 +166,56 @@ export const scrapeWallhaven = async ({
 } | null> => {
 	if (pageType !== 'latest' && pageType !== 'toplist') return null
 
-	const totalPageFetchURL = pageType=== 'latest' ? WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL : WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL
+	const totalPageFetchURL = pageType === 'latest' ? WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL : WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL
 
-	const totalAvailablePage =	await getWallhavenPageTotalCount(totalPageFetchURL)
+	const totalAvailablePage = await getWallhavenPageTotalCount(totalPageFetchURL)
 
-	if(!totalAvailablePage){
+	if (!totalAvailablePage) {
 		return null
 	}
 
 	let currentPage = totalAvailablePage;
 
 
-		const previousScrapedDetails = await getScrapedMetaData({ pageType, source:"Wallhaven" })	
-		if (previousScrapedDetails) {
-			currentPage = previousScrapedDetails?.page ? Number(previousScrapedDetails.page) + 1 : totalAvailablePage
-		}
+	const previousScrapedDetails = await getScrapedMetaData({ pageType, source: "Wallhaven" })
+	if (previousScrapedDetails) {
+		currentPage = previousScrapedDetails?.page ? Number(previousScrapedDetails.page) + 1 : totalAvailablePage
+	}
 
-	
-	
-	let howManyToScrapePerSession =pageType=== 'latest'? SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST :SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST
-	const uptoPage = Math.max(currentPage - howManyToScrapePerSession-1,1)
-	console.log("totalAvailablePage",totalAvailablePage, previousScrapedDetails)
+
+
+	let howManyToScrapePerSession = pageType === 'latest' ? SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST : SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST
+	const uptoPage = Math.max(currentPage - howManyToScrapePerSession - 1, 1)
+	console.log("totalAvailablePage", totalAvailablePage, previousScrapedDetails)
 	console.log("scraping from", currentPage, "to", currentPage - howManyToScrapePerSession)
-		
+
 	// return null
 
 	let nextScrapedPageMarker = currentPage
 	let totalWallpapers = 0;
 	let successfullScrapes = 0;
 	let failedScrapes = 0;
-	let allWallpapers: IWallhaven[] = []	
+	let allWallpapers: IWallhaven[] = []
 	let currentPageBeingScraped = 0;
 
 	// for (let i = currentPage; i <= currentPage + totalPages; i++) {
-		for (let i = currentPage; i >= uptoPage && i >= 1; i--) {
-			currentPageBeingScraped+=1
+	for (let i = currentPage; i >= uptoPage && i >= 1; i--) {
+
+		// failed scrapes could be any reason, but mostly it seems like its because of http code 429 - too many requests
+		if (failedScrapes >= MAX_FAILED_ATTEMPTS_BEFORE_CANCELLING_SCRAPE) {
+			console.log(`Too many failed scrapes (${failedScrapes}), cancelling scrape`)
+			break
+		}
+
+		currentPageBeingScraped += 1
+
 		try {
 			console.log(`Querying https://wallhaven.cc/${pageType}?page=${i} | ${currentPageBeingScraped}/${howManyToScrapePerSession}`)
 			const html = await getHTML(`https://wallhaven.cc/${pageType}?page=${i}&apiKey=${WALLHAVEN_API_KEY}`);
 			if (!html) {
 				nextScrapedPageMarker = i;
 				failedScrapes += 1;
-				await setScrapedMetaData({currentPage: nextScrapedPageMarker, pageType,source:"Wallhaven"})
+				await setScrapedMetaData({ currentPage: nextScrapedPageMarker, pageType, source: "Wallhaven" })
 				continue
 			}
 			const wallpapers = parseWallhavenThumbnails(html) || [];
@@ -217,13 +225,13 @@ export const scrapeWallhaven = async ({
 
 			// for testing purposes, only scrape details of 2 wallpapers per page
 			// const wallsWithDetails = await _handleScrapeWallpaperDetails(wallpapers.slice(0,2))
-			
+
 			// await saveWallpapers(wallsWithDetails.slice(0,2))
 			await saveWallpapers(wallsWithDetails)
 			totalWallpapers += wallsWithDetails.length;
 			successfullScrapes += 1
 			allWallpapers = [...allWallpapers, ...wallsWithDetails]
-			
+
 			// if (savedResults.imageExists) {
 			// 	console.info(`Wallpaper already exists. Skipping page ${i}. Sleeping for ${SCRAPE_URL_SLEEEP}ms`)
 			// 	nextScrapedPageMarker += 1;
@@ -233,7 +241,7 @@ export const scrapeWallhaven = async ({
 
 			console.log(`Finished scraping ${pageType} for page ${i}. Sleeping for ${SCRAPE_URL_SLEEEP}ms`)
 			nextScrapedPageMarker = i
-			await setScrapedMetaData({currentPage: nextScrapedPageMarker, pageType, source:"Wallhaven"})
+			await setScrapedMetaData({ currentPage: nextScrapedPageMarker, pageType, source: "Wallhaven" })
 			// await saveCurrentScrapedState({currentPage: nextScrapedPageMarker, pageType})
 			await sleep(SCRAPE_URL_SLEEEP)
 		} catch (error) {
@@ -242,7 +250,7 @@ export const scrapeWallhaven = async ({
 		}
 	}
 
-console.log(`Finished scraping ${pageType} wallpapers`)
+	console.log(`Finished scraping ${pageType} wallpapers`)
 
 	return {
 		totalWallpapers,
@@ -254,19 +262,19 @@ console.log(`Finished scraping ${pageType} wallpapers`)
 }
 
 
-export const getWallhavenPageTotalCount = async(url: string) => {
+export const getWallhavenPageTotalCount = async (url: string) => {
 	const html = await getHTML(`${url}&apiKey=${WALLHAVEN_API_KEY}`);
 
-	if(!html) return null
+	if (!html) return null
 
 	const $ = cheerio.load(html);
 
-	const headerElement= $(".thumb-listing-page-header")
+	const headerElement = $(".thumb-listing-page-header")
 
 	// const currentPage = headerElement.find(".thumb-listing-page-num").text();
 	const allPageText = headerElement.text();
 	const totalPage = +allPageText.split(" / ")[1].trim() || null;
 
-	return totalPage 
+	return totalPage
 
 }
