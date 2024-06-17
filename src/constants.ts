@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+export const APP_NAME = "Wallpaper API"
 export const SCRAPE_DETAIL_SLEEEP = 3000
 export const SCRAPE_URL_SLEEEP = 3000
 export const SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST = process.env.SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST ? Number(process.env.SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST) : 5 // small value cuz the toplist won't be updated that frequently, currently only has 83 pages

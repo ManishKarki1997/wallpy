@@ -2,11 +2,11 @@ import { Elysia } from "elysia";
 import { getPageTotalCount, scrapeWallhaven } from "./helpers/parseWallhaven";
 import { WALLHAVEN_PREFIX, Wallhaven } from "./db/wallhaven";
 import { runWallhavenCRON } from "./cron/wallhaven-cron";
-import { DEFAULT_PAGINATION_SIZE, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from "./constants";
+import { APP_NAME, DEFAULT_PAGINATION_SIZE, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from "./constants";
 import { scrapeWallhavenQueue } from "./scheduler/wallhavenScheduler";
 import { saveWallpapers } from "./services/SUWallpaper.service";
 import { listCategories, listWallpapers } from "./services/UserWallpaper.service";
-
+import { setupSocketLogger } from "./socket/socket";
 
 const adminAPI = new Elysia({ prefix: "su" })
   .get("/scrape", async ({ query }) => {
@@ -106,6 +106,7 @@ const app = new Elysia()
 
 
 runWallhavenCRON()
+setupSocketLogger()
 
 app.listen(9001, () => {
   console.log(
