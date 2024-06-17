@@ -203,7 +203,7 @@ export const scrapeWallhaven = async ({
 		// failed scrapes could be any reason, but mostly it seems like its because of http code 429 - too many requests
 		if (failedScrapes >= MAX_FAILED_ATTEMPTS_BEFORE_CANCELLING_SCRAPE) {
 			console.log(`Too many failed scrapes (${failedScrapes}), cancelling scrape`)
-			break
+			throw new Error(`Too many failed scrapes (${failedScrapes}), cancelling scrape`)
 		}
 
 		currentPageBeingScraped += 1
