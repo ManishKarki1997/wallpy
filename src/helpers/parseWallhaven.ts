@@ -5,6 +5,7 @@ import { sleep } from '../utils';
 import { WALLHAVEN_PREFIX, Wallhaven } from '../db/wallhaven';
 import { MAX_FAILED_ATTEMPTS_BEFORE_CANCELLING_SCRAPE, SCRAPE_DETAIL_SLEEEP, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, SCRAPE_URL_SLEEEP, WALLHAVEN_API_KEY, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from '../constants';
 import { getScrapedMetaData, saveWallpapers, setScrapedMetaData } from '../services/SUWallpaper.service';
+import { logger } from '../logger';
 
 
 
@@ -136,10 +137,10 @@ const _handleScrapeWallpaperDetails = async (wallpapers: IWallhaven[]): Promise<
 				...wallpaper,
 				...wallpaperDetails
 			})
-			console.info(`Scraped details for wallpaper ${wallpaper.imageId}. ${idx}/${wallpapers.length} Completed. Sleeping for ${SCRAPE_DETAIL_SLEEEP}ms`)
+			logger.info(`Scraped details for wallpaper ${wallpaper.imageId}. ${idx}/${wallpapers.length} Completed. Sleeping for ${SCRAPE_DETAIL_SLEEEP}ms`)
 			await sleep(SCRAPE_DETAIL_SLEEEP)
 		} catch (error) {
-			console.error(`Couldn't scrape details for wallpaper ${wallpaper.imageId}`, error?.message)
+			logger.error(`Couldn't scrape details for wallpaper ${wallpaper.imageId} - ${error?.message}`,)
 		} finally {
 			idx += 1
 		}
@@ -186,7 +187,8 @@ export const scrapeWallhaven = async ({
 
 	let howManyToScrapePerSession = pageType === 'latest' ? SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST : SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST
 	const uptoPage = Math.max(currentPage - howManyToScrapePerSession - 1, 1)
-	console.log("scraping from", currentPage, "to", currentPage - howManyToScrapePerSession)
+	logger.info(`Scraping from ${currentPage}, "to", ${currentPage - howManyToScrapePerSession}`)
+	// console.log("scraping from", currentPage, "to", currentPage - howManyToScrapePerSession)
 
 	// return null
 
@@ -202,14 +204,14 @@ export const scrapeWallhaven = async ({
 
 		// failed scrapes could be any reason, but mostly it seems like its because of http code 429 - too many requests
 		if (failedScrapes >= MAX_FAILED_ATTEMPTS_BEFORE_CANCELLING_SCRAPE) {
-			console.log(`Too many failed scrapes (${failedScrapes}), cancelling scrape`)
+			logger.error(`Too many failed scrapes (${failedScrapes}), cancelling scrape`)
 			throw new Error(`Too many failed scrapes (${failedScrapes}), cancelling scrape`)
 		}
 
 		currentPageBeingScraped += 1
 
 		try {
-			console.log(`Querying https://wallhaven.cc/${pageType}?page=${i} | ${currentPageBeingScraped}/${howManyToScrapePerSession}`)
+			logger.info(`Querying https://wallhaven.cc/${pageType}?page=${i} | ${currentPageBeingScraped}/${howManyToScrapePerSession}`)
 			const html = await getHTML(`https://wallhaven.cc/${pageType}?page=${i}&apiKey=${WALLHAVEN_API_KEY}`);
 			if (!html) {
 				nextScrapedPageMarker = i;
@@ -238,7 +240,7 @@ export const scrapeWallhaven = async ({
 			// 	continue
 			// }
 
-			console.log(`Finished scraping ${pageType} for page ${i}. Sleeping for ${SCRAPE_URL_SLEEEP}ms`)
+			logger.info(`Finished scraping ${pageType} for page ${i}. Sleeping for ${SCRAPE_URL_SLEEEP}ms`)
 			nextScrapedPageMarker = i
 			await setScrapedMetaData({ currentPage: nextScrapedPageMarker, pageType, source: "Wallhaven" })
 			// await saveCurrentScrapedState({currentPage: nextScrapedPageMarker, pageType})
@@ -249,7 +251,7 @@ export const scrapeWallhaven = async ({
 		}
 	}
 
-	console.log(`Finished scraping ${pageType} wallpapers`)
+	logger.info(`Finished scraping ${pageType} wallpapers`)
 
 	return {
 		totalWallpapers,

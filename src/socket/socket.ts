@@ -14,15 +14,15 @@ export const setupSocketLogger = () => {
     console.log(`Connected to logger server`)
 
     // setInterval(() => {
-    //   logger.info("Hello from logger server", {
+    //   logger.error("Hello from logger server", {
     //     data: {
-    //       hello: "world"
+
     //     },
     //     options: {
     //       shouldSendLogToCentralServer: true
     //     }
-    //   },)
-    // }, 5000)
+    //   })
+    // }, 7000)
   })
 
   socket.emit("JOIN", {

@@ -1,6 +1,7 @@
 import winston from 'winston'
 import { ILogMessage } from './types/logger';
 import { getSocket } from './socket/socket';
+import { APP_NAME } from './constants';
 
 
 const httpTransportOptions = {
@@ -37,12 +38,16 @@ function handleNewLog(log: ILogMessage) {
     level,
     timestamp,
     message,
-    data,
+    data: {
+      ...data,
+      appName: APP_NAME
+    },
   }
 
+  console.log("Sending Log...", finalPayload, shouldSendLogToCentralServer)
   if (shouldSendLogToCentralServer) {
     const socket = getSocket()
-    // console.log("Sending Log...", finalPayload, socket.id)
+    console.log("Sending Log...", finalPayload, socket.id)
     socket.emit("LOG", finalPayload)
   }
 
