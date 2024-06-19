@@ -44,10 +44,9 @@ function handleNewLog(log: ILogMessage) {
     },
   }
 
-  console.log("Sending Log...", finalPayload, shouldSendLogToCentralServer)
   if (shouldSendLogToCentralServer) {
     const socket = getSocket()
-    console.log("Sending Log...", finalPayload, socket.id)
+    // console.log("Sending Log...", finalPayload, socket.id)
     socket.emit("LOG", finalPayload)
   }
 
