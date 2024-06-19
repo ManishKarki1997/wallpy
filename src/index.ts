@@ -3,10 +3,11 @@ import { getPageTotalCount, scrapeWallhaven } from "./helpers/parseWallhaven";
 import { WALLHAVEN_PREFIX, Wallhaven } from "./db/wallhaven";
 import { runWallhavenCRON } from "./cron/wallhaven-cron";
 import { APP_NAME, DEFAULT_PAGINATION_SIZE, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from "./constants";
-import { scrapeWallhavenQueue } from "./scheduler/wallhavenScheduler";
-import { saveWallpapers } from "./services/SUWallpaper.service";
+import { getAllJobIds, saveWallpapers, stopAllWallpaperJobs } from "./services/SUWallpaper.service";
 import { listCategories, listWallpapers } from "./services/UserWallpaper.service";
-import { setupSocketLogger } from "./socket/socket";
+import { handleEmitAllJobs, setupSocketLogger } from "./socket/socket";
+import { scrapeWallhavenQueue } from "./scheduler/queues";
+import { logger } from "./logger";
 
 const adminAPI = new Elysia({ prefix: "su" })
   .get("/scrape", async ({ query }) => {
@@ -39,7 +40,8 @@ const adminAPI = new Elysia({ prefix: "su" })
         { jobId: uniqueJobId }
       )
 
-      console.log(`Job added to queue`, { page: +page, totalPages: +totalPages, pageType: pageType as "latest" | "toplist" })
+      handleEmitAllJobs()
+      logger.info(`Job added to queue`, { page: +page, totalPages: +totalPages, pageType: pageType as "latest" | "toplist" })
 
       return {
         message: `Scraping job added to queue.`,
@@ -51,6 +53,14 @@ const adminAPI = new Elysia({ prefix: "su" })
       return new Response("Something went wrong while scraping wallpapers")
     }
   })
+
+adminAPI.get("/stop-all-jobs", async () => {
+  // await stopAllWallpaperJobs()
+  const allJobIds = await getAllJobIds()
+
+  // return new Response("All jobs stopped",)
+  return (allJobIds)
+})
 
 const usersAPI = new Elysia()
   .get("/", async ({ query }) => {
