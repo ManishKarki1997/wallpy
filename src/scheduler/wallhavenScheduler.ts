@@ -1,8 +1,6 @@
-import { Queue, Worker } from 'bullmq'
 import { scrapeWallhaven } from '../helpers/parseWallhaven';
+import { Queue, Worker } from 'bullmq'
 import { IJobHandler, IQueueJob } from '../types/queue';
-import { logger } from '../logger';
-import { residConnection } from './queues';
 
 const redisHost = process.env.REDIS_HOST || 'localhost';
 
@@ -19,10 +17,11 @@ const processJob = async (job: IQueueJob) => {
     await handler(data)
   }
 }
-
-// scrapeWallhavenQueue.on("progress", (job, progress) => {
-//   logger.info(`Job ${job?.name} progress: ${progress}`)
-// })
+const residConnection = {
+  host: redisHost,
+  port: 6379
+}
+const scrapeWallhavenQueue = new Queue("ScrapeWallhavenQueue", { connection: residConnection });
 
 const worker = new Worker("ScrapeWallhavenQueue", processJob, {
   connection: residConnection,
@@ -33,10 +32,13 @@ const worker = new Worker("ScrapeWallhavenQueue", processJob, {
   removeOnFail: {
     age: 0,
     count: 0
-  }
+  },
 })
 
 
 worker.on('failed', (job, err) => {
   console.error(`Job ${job?.name} failed with error ${err.message}`);
 });
+
+
+export { scrapeWallhavenQueue }

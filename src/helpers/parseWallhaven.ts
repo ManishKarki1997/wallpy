@@ -158,7 +158,7 @@ const saveCurrentScrapedState = async (params: IScrapedMetadata) => {
 
 
 export const scrapeWallhaven = async ({
-	page = 1, totalPages = 5, pageType = "latest"
+	pageType = "latest"
 }: IScrapeWallhaven): Promise<{
 	totalWallpapers: number;
 	successfullScrapes: number;

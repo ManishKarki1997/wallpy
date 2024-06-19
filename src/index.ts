@@ -1,13 +1,12 @@
 import { Elysia } from "elysia";
-import { getPageTotalCount, scrapeWallhaven } from "./helpers/parseWallhaven";
 import { WALLHAVEN_PREFIX, Wallhaven } from "./db/wallhaven";
 import { runWallhavenCRON } from "./cron/wallhaven-cron";
 import { APP_NAME, DEFAULT_PAGINATION_SIZE, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_LATEST, SCRAPE_TOTAL_PAGES_EACH_TIME_WALLHAVEN_TOPLIST, WALLHAVEN_LATEST_FETCH_TOTAL_PAGE_URL, WALLHAVEN_TOPLIST_FETCH_TOTAL_PAGE_URL } from "./constants";
-import { getAllJobIds, saveWallpapers, stopAllWallpaperJobs } from "./services/SUWallpaper.service";
 import { listCategories, listWallpapers } from "./services/UserWallpaper.service";
-import { handleEmitAllJobs, setupSocketLogger } from "./socket/socket";
-import { scrapeWallhavenQueue } from "./scheduler/queues";
+import { setupSocketLogger } from "./socket/socket";
 import { logger } from "./logger";
+import { scrapeWallhavenQueue } from "./scheduler/wallhavenScheduler";
+import { handleEmitAllJobs, handleSocketEvents } from "./socket/handleSocketEvents";
 
 const adminAPI = new Elysia({ prefix: "su" })
   .get("/scrape", async ({ query }) => {
@@ -37,7 +36,7 @@ const adminAPI = new Elysia({ prefix: "su" })
 
       await scrapeWallhavenQueue.add("scrapeWallhaven",
         { page: +page, totalPages: +totalPages, pageType: pageType as "latest" | "toplist" },
-        { jobId: uniqueJobId }
+        { jobId: uniqueJobId },
       )
 
       handleEmitAllJobs()
@@ -54,13 +53,6 @@ const adminAPI = new Elysia({ prefix: "su" })
     }
   })
 
-adminAPI.get("/stop-all-jobs", async () => {
-  // await stopAllWallpaperJobs()
-  const allJobIds = await getAllJobIds()
-
-  // return new Response("All jobs stopped",)
-  return (allJobIds)
-})
 
 const usersAPI = new Elysia()
   .get("/", async ({ query }) => {
@@ -116,7 +108,8 @@ const app = new Elysia()
 
 
 runWallhavenCRON()
-setupSocketLogger()
+const socket = setupSocketLogger()
+handleSocketEvents(socket)
 
 app.listen(9001, () => {
   console.log(
