@@ -9,7 +9,9 @@ let socket: Socket | null = null;
 
 export const setupSocketLogger = () => {
   socket = io(process.env.LOGGER_SERVER_URL || "http://192.168.1.162:7000", {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    secure: false,
+    transports: ['websocket'],
   })
 
   socket.on("connect", () => {
@@ -21,9 +23,6 @@ export const setupSocketLogger = () => {
     }, 7000)
   })
 
-  socket.on("error", (err) => {
-    logger.error("Couldn't connect to the logging server", err)
-  })
   socket.on("connect_error", (err) => {
     logger.error("Couldn't connect to the logging server. connect_error ", err)
   })
