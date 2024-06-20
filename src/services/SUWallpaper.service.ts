@@ -5,7 +5,6 @@ import { generateWallpaperId } from "../helpers/uuid";
 // import { logger } from "../logger";
 import { IScrapedMetadata, IWallhaven } from "../types/wallhaven"
 import { IListWallpapers } from "../types/wallpaper";
-import { scrapeWallhavenQueue } from "../scheduler/wallhavenScheduler";
 
 export const saveWallpapers = async (wallpapers: IWallhaven[]) => {
   let transaction;

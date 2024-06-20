@@ -2,7 +2,7 @@ import { Job } from "bullmq"
 import { scrapeWallhavenQueue } from "./wallhavenScheduler"
 
 export const getAllJobIds = async () => {
-  const jobs = await scrapeWallhavenQueue.getJobs(["active", "waiting", "delayed", "completed"])
+  const jobs = await scrapeWallhavenQueue.getJobs(["active", "waiting", "delayed", "completed", "failed"])
   const uniqueJobIds = Array.from(new Set(jobs.map(job => job.id)))
   return uniqueJobIds
 }
@@ -10,7 +10,7 @@ export const getAllJobIds = async () => {
 export const stopAllWallpaperJobs = async ({ jobIds }: { jobIds?: string[] }) => {
 
   try {
-    const jobs = await scrapeWallhavenQueue.getJobs(["active", "waiting", "delayed", "completed"])
+    const jobs = await scrapeWallhavenQueue.getJobs(["active", "waiting", "delayed", "completed", "failed"])
 
     const _handleDeleteJob = (job: Job<any, any, string>) => {
       // logger.info(`Stopping job ${job.id}`)

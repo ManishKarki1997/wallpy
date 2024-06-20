@@ -65,6 +65,16 @@ const handleAddWallhavenJob = async (jobName: string) => {
   }
 
   const uniqueJobId = `scrapeWallhaven-${jobName}`
+
+  const existingJob = await scrapeWallhavenQueue.getJobState(uniqueJobId)
+
+  if (existingJob && (existingJob === "waiting" || existingJob === 'active')) {
+    return new Response("Job already in queue")
+  } else if (existingJob === 'failed') {
+    scrapeWallhavenQueue.remove(uniqueJobId)
+  }
+
+
   await scrapeWallhavenQueue.add("scrapeWallhaven",
     { page: +page, totalPages: +totalPages, pageType: jobName as "latest" | "toplist" },
     { jobId: uniqueJobId }

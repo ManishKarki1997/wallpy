@@ -12,7 +12,7 @@ const jobHandlers: { [key: string]: IJobHandler } = {
 const processJob = async (job: IQueueJob) => {
   const { name, data, } = job
   const handler = jobHandlers[name]
-
+  console.log("processJOb handler ", data)
   if (handler) {
     await handler(data)
   }
